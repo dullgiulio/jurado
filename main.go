@@ -87,6 +87,17 @@ type TestArgs map[string]string
 // Test name : map of arguments
 type TestInfo map[string]TestArgs
 
+type hostname string
+
+type config map[hostname]struct{ Options ConfOptions; Products ConfProducts }
+
+type ConfProducts map[string][]Check
+
+type ConfOptions struct {
+	File string
+	Remotes []string
+}
+
 type Check struct {
 	Name    string
 	Host    string
@@ -151,27 +162,50 @@ func readFile(url string) ([]byte, error) {
 	return readHttpFile(url)
 }
 
-func loadChecks(url string) ([]Check, error) {
+func loadConf(url string) (*config, error) {
 	body, err := readFile(url)
 	if err != nil {
 		return nil, err
 	}
-	var checks []Check
-	err = json.Unmarshal(body, &checks)
+	var cf config
+	err = json.Unmarshal(body, &cf)
 	if err != nil {
 		return nil, fmt.Errorf("cannot unmarshal checks: %s", err)
 	}
-	return checks, nil
+	return &cf, nil
+}
+
+func (c config) forHostname(h hostname) (ConfProducts, *ConfOptions, error) {
+	cf, ok := c[h]
+	if !ok {
+		return nil, nil, fmt.Errorf("no configuration for host %s", h)
+	}
+	return cf.Products, &cf.Options, nil
 }
 
 func main() {
 	flag.Parse()
-	checks, err := loadChecks(flag.Arg(0))
+	arg := flag.Arg(0)
+	if arg == "" {
+		log.Fatal("specify a URL to load the configuration from")
+	}
+	conf, err := loadConf(flag.Arg(0))
 	if err != nil {
 		log.Fatalf("cannot load checks profile: %s", err)
 	}
+	hname, err := os.Hostname()
+	if err != nil {
+		log.Fatalf("cannot determine local hostname: %s", err)
+	}
+	prods, opts, err := conf.forHostname(hostname(hname))
+	if err != nil {
+		log.Printf("cannot use configuration: %s", err)
+	}
 
-	for i := range checks {
+	fmt.Printf("%+v\n%+v\n", prods, opts)
+
+	/*
+	for i := range cf {
 		res, err := checks[i].run()
 		if err != nil {
 			log.Printf("Error: can't run check %s: %s", checks[i].Name, err)
@@ -181,7 +215,15 @@ func main() {
 			fmt.Printf("%+v\n", res[c])
 		}
 	}
+	*/
 
+	// -> read incoming results from JSON, put to incoming channel
+	// -> generate results by running tests, put to results channel
+	// -> receive from incoming channel, persist to JSON
+	// -> receive from results channel, duplicate and
+	//    -> put to incoming channel if result is local
+	//    -> put to all remote URLs that result carries
+	// -> persist a log with the latest errors, maybe?
 
 	//http.HandleFunc("/check/result/add", postCheckResult)
 	//log.Fatal(http.ListenAndServe(":8082", nil))
