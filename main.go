@@ -18,10 +18,9 @@ type TestResult struct {
 	Host    string // observed host
 	Product string
 	Group   string
+	Error   string
 	Date    time.Time
 	Results []CheckResult
-	Error   error
-	check   *Check
 }
 
 func newTestResult(from, product string, date time.Time, res []CheckResult, c *Check) *TestResult {
@@ -32,20 +31,17 @@ func newTestResult(from, product string, date time.Time, res []CheckResult, c *C
 		Group:   c.Group,
 		Date:    date,
 		Results: res,
-		check:   c,
 	}
 }
 
 type CheckResult struct {
-	check  *Check
 	Status int // Use HTTP statuses
 	Time   time.Time
 	Error  string
 }
 
-func NewCheckResult(ch *Check, status int) *CheckResult {
+func NewCheckResult(status int) *CheckResult {
 	return &CheckResult{
-		check:  ch,
 		Time:   time.Now(),
 		Status: status,
 	}
@@ -98,12 +94,12 @@ func (h *httpTester) test(ch *Check) ([]CheckResult, error) {
 
 func (h *httpTester) testHttpCheckStatus(ch *Check, args TestArgs) (*CheckResult, error) {
 	log.Print("running test testHttpCheckStatus")
-	return NewCheckResult(ch, 200), nil
+	return NewCheckResult(200), nil
 }
 
 func (h *httpTester) testHttpBodyContains(ch *Check, args TestArgs) (*CheckResult, error) {
 	log.Print("running test testHttpBodyContains")
-	return NewCheckResult(ch, 200), nil
+	return NewCheckResult(200), nil
 }
 
 type TestArgs map[string]string
@@ -126,7 +122,7 @@ func (p ConfProducts) runCheckers(host string, in chan<- *TestResult) {
 			check := &prods[i]
 			tr, err := check.run(prodName, host)
 			if err != nil {
-				tr.Error = err
+				tr.Error = err.Error()
 			}
 			in <- tr
 		}
@@ -279,7 +275,7 @@ func (p *persister) processIncoming(in <-chan *TestResult) {
 		if err != nil {
 			log.Fatalf("cannot marshal tests status: %s", err)
 		}
-		if err := writeFileAtomic(p.conf.File, data, os.FileMode(0755)); err != nil {
+		if err := writeFileAtomic(p.conf.File, data, os.FileMode(0644)); err != nil {
 			log.Fatalf("cannot write results JSON file: %s", err)
 		}
 	}
@@ -400,5 +396,6 @@ func main() {
 
 	api := &api{pr}
 	http.HandleFunc(apiPutResultPath, api.handlePutResult)
+	// TODO: make API to reload configuration (and restart checkers etc)
 	log.Fatal(http.ListenAndServe(":8911", nil))
 }
