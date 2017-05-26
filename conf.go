@@ -24,15 +24,22 @@ func (c config) forHostname(h hostname) (ConfProducts, *ConfOptions, error) {
 type ConfProducts map[string][]Check
 
 // TODO: this is in the wrong file/on the wrong type
-func (p ConfProducts) runCheckers(host string, in chan<- *TestResult) {
-	for prodName, prods := range p {
+func (p ConfProducts) init() error {
+	for _, prods := range p {
 		for i := range prods {
-			check := &prods[i]
-			tr, err := check.run(prodName, host)
-			if err != nil {
-				tr.Error = err.Error()
+			if err := prods[i].init(); err != nil {
+				return err
 			}
-			in <- tr
+		}
+	}
+	return nil
+}
+
+// TODO: this is in the wrong file/on the wrong type
+func (p ConfProducts) runCheckers(host string, in chan<- *TestResult) {
+	for name, prods := range p {
+		for i := range prods {
+			in <- prods[i].run(name, host)
 		}
 	}
 }

@@ -27,11 +27,15 @@ func main() {
 	}
 	prods, opts, err := conf.forHostname(hostname(hname))
 	if err != nil {
-		log.Printf("cannot use configuration: %s", err)
+		log.Fatalf("cannot use configuration: %s", err)
 	}
 
 	opts.addRemotesPath(apiPutResultPath)
 	pr := newPersister(opts)
+
+	if err := prods.init(); err != nil {
+		log.Fatalf("cannot start: %s", err)
+	}
 
 	go func() {
 		for {
