@@ -13,8 +13,8 @@ import (
 
 type persister struct {
 	conf     *ConfOptions
-	incoming chan *TestResult
-	results  chan *TestResult
+	incoming chan *CheckResult
+	results  chan *CheckResult
 	status   status
 }
 
@@ -22,8 +22,8 @@ func newPersister(cf *ConfOptions) *persister {
 	p := &persister{
 		conf:     cf,
 		status:   makeStatus(),
-		incoming: make(chan *TestResult),
-		results:  make(chan *TestResult),
+		incoming: make(chan *CheckResult),
+		results:  make(chan *CheckResult),
 	}
 	go p.processIncoming(p.incoming)
 	go p.processResults(p.results)
@@ -31,12 +31,12 @@ func newPersister(cf *ConfOptions) *persister {
 }
 
 // Events coming from other agents
-func (p *persister) processIncoming(in <-chan *TestResult) {
-	for tr := range in {
+func (p *persister) processIncoming(in <-chan *CheckResult) {
+	for cr := range in {
 		if p.conf.File == "" {
 			continue
 		}
-		p.status.appendTestResult(tr.Host, tr.Product, tr.Group, tr)
+		p.status.add(cr)
 		data, err := json.Marshal(p.status)
 		if err != nil {
 			log.Fatalf("cannot marshal tests status: %s", err)
@@ -48,7 +48,7 @@ func (p *persister) processIncoming(in <-chan *TestResult) {
 }
 
 // Events coming from our tests
-func (p *persister) processResults(in <-chan *TestResult) {
+func (p *persister) processResults(in <-chan *CheckResult) {
 	for r := range in {
 		if len(p.conf.Remotes) == 0 {
 			p.incoming <- r
@@ -66,7 +66,7 @@ func (p *persister) processResults(in <-chan *TestResult) {
 	}
 }
 
-func (p *persister) putRemotes(remotes []string, result *TestResult) ([]error, error) {
+func (p *persister) putRemotes(remotes []string, result *CheckResult) ([]error, error) {
 	data, err := json.Marshal(result)
 	if err != nil {
 		return nil, fmt.Errorf("cannot marshal result: %s", err)
@@ -102,15 +102,15 @@ func (p *persister) putRemote(url string, r io.Reader) error {
 	return nil
 }
 
-func (p *persister) receiveTestResult(req *http.Request) error {
+func (p *persister) receiveCheckResult(req *http.Request) error {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		return fmt.Errorf("cannot read request body: %s", err)
 	}
-	tr := &TestResult{}
-	if err := json.Unmarshal(body, &tr); err != nil {
+	cr := &CheckResult{}
+	if err := json.Unmarshal(body, &cr); err != nil {
 		return fmt.Errorf("cannot unmarshal into result object: %s", err)
 	}
-	p.incoming <- tr
+	p.incoming <- cr
 	return err
 }

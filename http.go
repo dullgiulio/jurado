@@ -32,7 +32,7 @@ func (h *httpTester) init(ch *Check) error {
 			if !ok {
 				return fmt.Errorf("%s: need to speficy a number as 'status' value", k)
 			}
-			fn = h.testHttpCheckStatus(int(st))
+			fn = h.testHttpStatus(int(st))
 		case "http-body-contains":
 			val, ok := args["value"]
 			if !ok {
@@ -108,20 +108,20 @@ func (h *httpTester) makeRequest(opts map[string]string) error {
 	return nil
 }
 
-func (h *httpTester) testHttpCheckStatus(status int) testFn {
-	return func(ch *Check) *CheckResult {
+func (h *httpTester) testHttpStatus(status int) testFn {
+	return func(ch *Check) *TestResult {
 		if h.resp.StatusCode == status {
-			return NewCheckResult(200)
+			return NewTestResult(200)
 		}
-		return NewCheckResultError(500, fmt.Sprintf("HTTP status is '%s' not %d", h.resp.Status, status))
+		return NewTestResultError(500, fmt.Sprintf("HTTP status is '%s' not %d", h.resp.Status, status))
 	}
 }
 
 func (h *httpTester) testHttpBodyContains(str []byte) testFn {
-	return func(ch *Check) *CheckResult {
+	return func(ch *Check) *TestResult {
 		if bytes.Contains(h.body, str) {
-			return NewCheckResult(200)
+			return NewTestResult(200)
 		}
-		return NewCheckResultError(500, fmt.Sprintf("Body does not contain '%s'", str))
+		return NewTestResultError(500, fmt.Sprintf("Body does not contain '%s'", str))
 	}
 }

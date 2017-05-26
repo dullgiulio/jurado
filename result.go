@@ -6,18 +6,18 @@ func makeStatus() status {
 	return make(map[string]ProdStatus)
 }
 
-// Append and keep latest N for each test (TODO)
-func (s status) appendTestResult(host, product, group string, tr *TestResult) {
-	if _, ok := s[host]; !ok {
-		s[host] = makeProdStatus()
+// TODO: Append and keep latest N for each test
+func (s status) add(cr *CheckResult) {
+	if _, ok := s[cr.Host]; !ok {
+		s[cr.Host] = makeProdStatus()
 	}
-	if _, ok := s[host][product]; !ok {
-		s[host][product] = makeGroupStatus()
+	if _, ok := s[cr.Host][cr.Product]; !ok {
+		s[cr.Host][cr.Product] = makeGroupStatus()
 	}
-	if _, ok := s[host][product][group]; !ok {
-		s[host][product][group] = make([]*TestResult, 1)
+	if _, ok := s[cr.Host][cr.Product][cr.Group]; !ok {
+		s[cr.Host][cr.Product][cr.Group] = make([]*CheckResult, 1)
 	}
-	s[host][product][group][0] = tr
+	s[cr.Host][cr.Product][cr.Group][0] = cr
 }
 
 type ProdStatus map[string]GroupStatus
@@ -26,8 +26,8 @@ func makeProdStatus() ProdStatus {
 	return make(map[string]GroupStatus)
 }
 
-type GroupStatus map[string][]*TestResult
+type GroupStatus map[string][]*CheckResult
 
 func makeGroupStatus() GroupStatus {
-	return make(map[string][]*TestResult)
+	return make(map[string][]*CheckResult)
 }

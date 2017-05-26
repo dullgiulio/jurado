@@ -19,7 +19,7 @@ func (a *api) handlePutResult(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	if err := a.persister.receiveTestResult(req); err != nil {
+	if err := a.persister.receiveCheckResult(req); err != nil {
 		http.Error(rw, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}

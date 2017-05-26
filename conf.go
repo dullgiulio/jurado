@@ -36,7 +36,7 @@ func (p ConfProducts) init() error {
 }
 
 // TODO: this is in the wrong file/on the wrong type
-func (p ConfProducts) runCheckers(host string, in chan<- *TestResult) {
+func (p ConfProducts) runCheckers(host string, in chan<- *CheckResult) {
 	for name, prods := range p {
 		for i := range prods {
 			in <- prods[i].run(name, host)

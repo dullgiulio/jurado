@@ -5,19 +5,31 @@ import (
 	"time"
 )
 
-// TODO: this is mixed. This should be called CheckResult
 type TestResult struct {
+	Status     int // Use HTTP statuses
+	Problem    string
+	Suggestion string
+	Error      string
+}
+
+func NewTestResult(status int) *TestResult {
+	return &TestResult{
+		Status: status,
+	}
+}
+
+type CheckResult struct {
 	From    string // from which host
 	Host    string // observed host
 	Product string
 	Group   string
 	Error   string
 	Date    time.Time
-	Results []CheckResult
+	Results []TestResult
 }
 
-func newTestResult(from, product string, date time.Time, c *Check) *TestResult {
-	return &TestResult{
+func newCheckResult(from, product string, date time.Time, c *Check) *CheckResult {
+	return &CheckResult{
 		From:    from,
 		Product: product,
 		Host:    c.Host,
@@ -26,28 +38,13 @@ func newTestResult(from, product string, date time.Time, c *Check) *TestResult {
 	}
 }
 
-type CheckResult struct {
-	Status     int // Use HTTP statuses
-	Problem    string
-	Suggestion string
-	Time       time.Time
-	Error      string
+func NewTestResultError(status int, err string) *TestResult {
+	tr := NewTestResult(status)
+	tr.Error = err
+	return tr
 }
 
-func NewCheckResult(status int) *CheckResult {
-	return &CheckResult{
-		Time:   time.Now(),
-		Status: status,
-	}
-}
-
-func NewCheckResultError(status int, err string) *CheckResult {
-	c := NewCheckResult(status)
-	c.Error = err
-	return c
-}
-
-type testFn func(ch *Check) *CheckResult
+type testFn func(ch *Check) *TestResult
 
 type testMap map[string]testFn
 
@@ -106,8 +103,8 @@ func (c *Check) init() error {
 	return nil
 }
 
-func (c *Check) run(product, host string) *TestResult {
-	tr := newTestResult(host, product, time.Now(), c)
+func (c *Check) run(product, host string) *CheckResult {
+	tr := newCheckResult(host, product, time.Now(), c)
 	if err := c.tester.setUp(c); err != nil {
 		tr.Error = err.Error()
 		return tr
@@ -119,9 +116,9 @@ func (c *Check) run(product, host string) *TestResult {
 	return tr
 }
 
-func (c *Check) runTests(t tester) []CheckResult {
+func (c *Check) runTests(t tester) []TestResult {
 	var i int
-	res := make([]CheckResult, len(c.Tests))
+	res := make([]TestResult, len(c.Tests))
 	for tname := range c.Tests {
 		fn := t.get(tname)
 		r := fn(c)
