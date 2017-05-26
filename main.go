@@ -11,6 +11,7 @@ import (
 type hostname string
 
 func main() {
+	listen := flag.String("listen", ":8911", "What address/port to listen to")
 	flag.Parse()
 	arg := flag.Arg(0)
 	if arg == "" {
@@ -43,5 +44,5 @@ func main() {
 	api := &api{pr}
 	http.HandleFunc(apiPutResultPath, api.handlePutResult)
 	// TODO: make API to reload configuration (and restart checkers etc)
-	log.Fatal(http.ListenAndServe(":8911", nil))
+	log.Fatal(http.ListenAndServe(*listen, nil))
 }

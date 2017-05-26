@@ -23,6 +23,7 @@ func (c config) forHostname(h hostname) (ConfProducts, *ConfOptions, error) {
 
 type ConfProducts map[string][]Check
 
+// TODO: this is in the wrong file/on the wrong type
 func (p ConfProducts) runCheckers(host string, in chan<- *TestResult) {
 	for prodName, prods := range p {
 		for i := range prods {
@@ -74,11 +75,13 @@ func readLocalFile(url string) ([]byte, error) {
 }
 
 func readFile(url string) ([]byte, error) {
+	if url[0:7] == "http://" {
+		return readHttpFile(url)
+	}
 	if url[0:7] == "file://" {
 		url = url[7:]
-		return readLocalFile(url)
 	}
-	return readHttpFile(url)
+	return readLocalFile(url)
 }
 
 func loadConf(url string) (*config, error) {

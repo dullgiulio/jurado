@@ -33,6 +33,9 @@ func newPersister(cf *ConfOptions) *persister {
 // Events coming from other agents
 func (p *persister) processIncoming(in <-chan *TestResult) {
 	for tr := range in {
+		if p.conf.File == "" {
+			continue
+		}
 		p.status.appendTestResult(tr.Host, tr.Product, tr.Group, tr)
 		data, err := json.Marshal(p.status)
 		if err != nil {
@@ -47,6 +50,10 @@ func (p *persister) processIncoming(in <-chan *TestResult) {
 // Events coming from our tests
 func (p *persister) processResults(in <-chan *TestResult) {
 	for r := range in {
+		if len(p.conf.Remotes) == 0 {
+			p.incoming <- r
+			continue
+		}
 		errs, err := p.putRemotes(p.conf.Remotes, r)
 		if err != nil {
 			log.Fatalf("cannot put result to remote: %s", err)
