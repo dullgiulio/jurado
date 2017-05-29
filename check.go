@@ -28,10 +28,10 @@ type CheckResult struct {
 	Results []TestResult
 }
 
-func newCheckResult(from, product string, date time.Time, c *Check) *CheckResult {
+func newCheckResult(from string, date time.Time, c *Check) *CheckResult {
 	return &CheckResult{
 		From:    from,
-		Product: product,
+		Product: c.Product,
 		Host:    c.Host,
 		Group:   c.Group,
 		Date:    date,
@@ -77,17 +77,19 @@ type TestInfo struct {
 type Tests map[string]TestInfo
 
 type Check struct {
-	Name    string
-	Host    string
-	Group   string
-	Service string
-	Tests   Tests
-	Options map[string]string // TODO: should be string : interface{}
-	tester  tester
+	Product  string
+	Name     string
+	Host     string
+	Group    string
+	Service  string
+	Interval string
+	Tests    Tests
+	Options  map[string]string // TODO: should be string : interface{}
+	tester   tester
 }
 
 func (c *Check) String() string {
-	return fmt.Sprintf("%s:%s(%s)", c.Group, c.Name, c.Host)
+	return fmt.Sprintf("%s:%s:%s(%s)", c.Product, c.Group, c.Name, c.Host)
 }
 
 // TODO: should return an array of errors
@@ -103,8 +105,8 @@ func (c *Check) init() error {
 	return nil
 }
 
-func (c *Check) run(product, host string) *CheckResult {
-	tr := newCheckResult(host, product, time.Now(), c)
+func (c *Check) run(host string) *CheckResult {
+	tr := newCheckResult(host, time.Now(), c)
 	if err := c.tester.setUp(c); err != nil {
 		tr.Error = err.Error()
 		return tr

@@ -25,23 +25,15 @@ type ConfProducts map[string][]Check
 
 // TODO: this is in the wrong file/on the wrong type
 func (p ConfProducts) init() error {
-	for _, prods := range p {
+	for name, prods := range p {
 		for i := range prods {
+			prods[i].Product = name
 			if err := prods[i].init(); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
-}
-
-// TODO: this is in the wrong file/on the wrong type
-func (p ConfProducts) runCheckers(host string, in chan<- *CheckResult) {
-	for name, prods := range p {
-		for i := range prods {
-			in <- prods[i].run(name, host)
-		}
-	}
 }
 
 type ConfOptions struct {

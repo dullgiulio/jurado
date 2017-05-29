@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 )
 
 type hostname string
@@ -37,13 +36,17 @@ func main() {
 		log.Fatalf("cannot start: %s", err)
 	}
 
-	go func() {
-		for {
-			prods.runCheckers(hname, pr.results)
-			// TODO: must come from tests, this is more complicated
-			time.Sleep(1 * time.Second)
+	ts := make([]*task, 0)
+	for _, checks := range prods {
+		for i := range checks {
+			t, err := newTask(&checks[i])
+			if err != nil {
+				log.Fatalf("cannot make task for check %s: %s\n", checks[i], err)
+			}
+			ts = append(ts, t)
 		}
-	}()
+	}
+	go schedule(hname, pr.results, ts)
 
 	api := &api{pr}
 	http.HandleFunc(apiPutResultPath, api.handlePutResult)
