@@ -12,15 +12,15 @@ import (
 )
 
 type persister struct {
-	conf     *ConfOptions
+	agent    *ConfAgent
 	incoming chan *CheckResult
 	results  chan *CheckResult
 	status   status
 }
 
-func newPersister(cf *ConfOptions) *persister {
+func newPersister(a *ConfAgent) *persister {
 	p := &persister{
-		conf:     cf,
+		agent:    a,
 		status:   makeStatus(),
 		incoming: make(chan *CheckResult),
 		results:  make(chan *CheckResult),
@@ -33,7 +33,7 @@ func newPersister(cf *ConfOptions) *persister {
 // Events coming from other agents
 func (p *persister) processIncoming(in <-chan *CheckResult) {
 	for cr := range in {
-		if p.conf.File == "" {
+		if p.agent.Options.File == "" {
 			continue
 		}
 		p.status.add(cr)
@@ -41,7 +41,7 @@ func (p *persister) processIncoming(in <-chan *CheckResult) {
 		if err != nil {
 			log.Fatalf("cannot marshal tests status: %s", err)
 		}
-		if err := writeFileAtomic(p.conf.File, data, os.FileMode(0644)); err != nil {
+		if err := writeFileAtomic(p.agent.Options.File, data, os.FileMode(0644)); err != nil {
 			log.Fatalf("cannot write results JSON file: %s", err)
 		}
 	}
@@ -50,11 +50,11 @@ func (p *persister) processIncoming(in <-chan *CheckResult) {
 // Events coming from our tests
 func (p *persister) processResults(in <-chan *CheckResult) {
 	for r := range in {
-		if len(p.conf.Remotes) == 0 {
+		if len(p.agent.Options.Remotes) == 0 {
 			p.incoming <- r
 			continue
 		}
-		errs, err := p.putRemotes(p.conf.Remotes, r)
+		errs, err := p.putRemotes(p.agent.Options.Remotes, r)
 		if err != nil {
 			log.Fatalf("cannot put result to remote: %s", err)
 		}

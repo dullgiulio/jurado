@@ -7,8 +7,6 @@ import (
 	"os"
 )
 
-type hostname string
-
 func main() {
 	listen := flag.String("listen", ":8911", "What address/port to listen to")
 	nTestWorkers := flag.Int("tworkers", 4, "Number of parallel test runners")
@@ -25,20 +23,24 @@ func main() {
 	if err != nil {
 		log.Fatalf("cannot determine local hostname: %s", err)
 	}
-	prods, opts, err := conf.forHostname(hostname(hname))
+	agent, err := conf.forHostname(hname)
 	if err != nil {
 		log.Fatalf("cannot use configuration: %s", err)
 	}
 
-	opts.addRemotesPath(apiPutResultPath)
-	pr := newPersister(opts)
+	agent.addRemotesPath(apiPutResultPath)
+	pr := newPersister(agent)
 
-	if err := prods.init(); err != nil {
+	if err := conf.Products.init(); err != nil {
 		log.Fatalf("cannot start: %s", err)
 	}
 
 	ts := make([]*task, 0)
-	for _, checks := range prods {
+	for _, prod := range agent.Checks {
+		checks, ok := conf.Products[prod]
+		if !ok {
+			log.Fatalf("non-existing product %s to be checked for this host", prod)
+		}
 		for i := range checks {
 			t, err := newTask(&checks[i])
 			if err != nil {
@@ -47,6 +49,7 @@ func main() {
 			ts = append(ts, t)
 		}
 	}
+
 	s := newScheduler(hname, ts, pr.results, *nTestWorkers)
 	go s.schedule()
 

@@ -8,17 +8,17 @@ import (
 	"os"
 )
 
-type config map[hostname]struct {
-	Options  ConfOptions
+type config struct {
 	Products ConfProducts
+	Agents map[string]ConfAgent
 }
 
-func (c config) forHostname(h hostname) (ConfProducts, *ConfOptions, error) {
-	cf, ok := c[h]
+func (c config) forHostname(h string) (*ConfAgent, error) {
+	agent, ok := c.Agents[h]
 	if !ok {
-		return nil, nil, fmt.Errorf("no configuration for host %s", h)
+		return nil, fmt.Errorf("no configuration for host %s", h)
 	}
-	return cf.Products, &cf.Options, nil
+	return &agent, nil
 }
 
 type ConfProducts map[string][]Check
@@ -36,14 +36,19 @@ func (p ConfProducts) init() error {
 	return nil
 }
 
+type ConfAgent struct {
+	Checks []string
+	Options ConfOptions
+}
+
 type ConfOptions struct {
 	File    string
 	Remotes []string
 }
 
-func (o *ConfOptions) addRemotesPath(path string) {
-	for i := range o.Remotes {
-		o.Remotes[i] = o.Remotes[i] + path
+func (a *ConfAgent) addRemotesPath(path string) {
+	for i := range a.Options.Remotes {
+		a.Options.Remotes[i] = a.Options.Remotes[i] + path
 	}
 }
 
