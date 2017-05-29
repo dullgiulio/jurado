@@ -30,19 +30,45 @@ func (a taskByTimeLeft) Len() int           { return len(a) }
 func (a taskByTimeLeft) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a taskByTimeLeft) Less(i, j int) bool { return a[i].left < a[j].left }
 
-func schedule(host string, in chan<- *CheckResult, ts []*task) {
-	if len(ts) == 0 {
-		return
+type scheduler struct {
+	host string
+	ts   []*task
+	res  chan<- *CheckResult
+	ch   chan *Check
+}
+
+func newScheduler(host string, ts []*task, res chan<- *CheckResult, nworkers int) *scheduler {
+	s := &scheduler{
+		host: host,
+		ts:   ts,
+		res:  res,
+		ch:   make(chan *Check, len(ts)),
 	}
+	if len(ts) == 0 {
+		return s
+	}
+	for i := 0; i < nworkers; i++ {
+		go s.work()
+	}
+	return s
+}
+
+func (s *scheduler) work() {
+	for check := range s.ch {
+		fmt.Printf("executing %s\n", check)
+		s.res <- check.run(s.host)
+	}
+}
+
+func (s *scheduler) schedule() {
 	for {
-		sort.Sort(taskByTimeLeft(ts))
-		wait := ts[0].left
-		for i := range ts {
-			ts[i].left = -wait
-			if ts[i].left <= 0 {
-				ts[i].left = ts[i].repeat
-				fmt.Printf("executing %s\n", ts[i].check)
-				in <- ts[i].check.run(host)
+		sort.Sort(taskByTimeLeft(s.ts))
+		wait := s.ts[0].left
+		for i := range s.ts {
+			s.ts[i].left = -wait
+			if s.ts[i].left <= 0 {
+				s.ts[i].left = s.ts[i].repeat
+				s.ch <- s.ts[i].check
 			}
 		}
 		time.Sleep(wait)

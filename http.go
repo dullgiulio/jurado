@@ -14,6 +14,7 @@ type httpTester struct {
 	tests map[string]testFn
 }
 
+// TODO: Check structure of Options.
 func (h *httpTester) init(ch *Check) error {
 	if _, ok := ch.Options["Url"]; !ok {
 		return fmt.Errorf("need Url field in check options")
@@ -63,11 +64,14 @@ func (h *httpTester) get(name string) testFn {
 	return h.tests[name]
 }
 
-func (h *httpTester) makeRequest(opts map[string]string) error {
-	rurl := opts["Url"]
+func (h *httpTester) makeRequest(opts map[string]interface{}) error {
+	val := opts["Url"]
+	rurl := val.(string)
 	// If have a host, use swap it with the host in URL.
-	host, ok := opts["Host"]
+	var host string
+	val, ok := opts["Host"]
 	if ok {
+		host = val.(string)
 		u, err := url.Parse(rurl)
 		if err != nil {
 			return fmt.Errorf("cannot change URL host: %s", err)
@@ -84,7 +88,7 @@ func (h *httpTester) makeRequest(opts map[string]string) error {
 	}
 	method := "GET"
 	if m, ok := opts["Method"]; ok {
-		method = m
+		method = m.(string)
 	}
 	req, err := http.NewRequest(method, rurl, nil)
 	if err != nil {
@@ -93,6 +97,13 @@ func (h *httpTester) makeRequest(opts map[string]string) error {
 	if host != "" {
 		req.Host = host
 		req.Header.Set("Host", host)
+	}
+	val, ok = opts["Headers"]
+	if ok {
+		hrs := val.(map[string]interface{})
+		for k, v := range hrs {
+			req.Header.Set(k, v.(string))
+		}
 	}
 	resp, err := client.Do(req)
 	if err != nil {

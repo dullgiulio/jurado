@@ -84,7 +84,7 @@ type Check struct {
 	Service  string
 	Interval string
 	Tests    Tests
-	Options  map[string]string // TODO: should be string : interface{}
+	Options  map[string]interface{}
 	tester   tester
 }
 

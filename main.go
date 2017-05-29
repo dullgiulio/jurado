@@ -11,6 +11,7 @@ type hostname string
 
 func main() {
 	listen := flag.String("listen", ":8911", "What address/port to listen to")
+	nTestWorkers := flag.Int("tworkers", 4, "Number of parallel test runners")
 	flag.Parse()
 	arg := flag.Arg(0)
 	if arg == "" {
@@ -46,7 +47,8 @@ func main() {
 			ts = append(ts, t)
 		}
 	}
-	go schedule(hname, pr.results, ts)
+	s := newScheduler(hname, ts, pr.results, *nTestWorkers)
+	go s.schedule()
 
 	api := &api{pr}
 	http.HandleFunc(apiPutResultPath, api.handlePutResult)
