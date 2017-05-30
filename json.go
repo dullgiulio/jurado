@@ -28,10 +28,11 @@ func (j *jsonTester) init(ch *Check) error {
 		case "json-object-path":
 			var path string
 			val, ok := args["path"]
-			if ok {
-				if path, ok = val.(string); !ok {
-					return fmt.Errorf("%s: need to speficy a string as 'path' value", k)
-				}
+			if !ok {
+				return fmt.Errorf("%s: need to specify a 'path' option", k)
+			}
+			if path, ok = val.(string); !ok {
+				return fmt.Errorf("%s: need to specify a string as 'path' value", k)
 			}
 			keys, err := parseJsonPath(path)
 			if err != nil {
@@ -124,7 +125,6 @@ func (s stringKey) value(obj interface{}) (interface{}, bool) {
 	if obj, ok = mobj[string(s)]; ok {
 		return obj, true
 	}
-	fmt.Printf("no map %s\n", string(s))
 	return nil, false
 }
 
@@ -133,11 +133,9 @@ type arrayKey int
 func (i arrayKey) value(obj interface{}) (interface{}, bool) {
 	aobj, ok := obj.([]interface{})
 	if !ok {
-		fmt.Printf("not an array %#v\n", obj)
 		return nil, false
 	}
 	if len(aobj) < int(i) {
-		fmt.Printf("%d too big for %d\n", int(i), len(aobj))
 		return nil, false
 	}
 	return aobj[int(i)], true
