@@ -61,6 +61,8 @@ func newTester(srv string, ch *Check) (tester, error) {
 	switch srv {
 	case "http":
 		return &httpTester{}, nil
+	case "json":
+		return &jsonTester{}, nil
 	default:
 		return nil, fmt.Errorf("unknown service %s", srv)
 	}

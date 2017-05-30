@@ -10,7 +10,7 @@ import (
 
 type config struct {
 	Products ConfProducts
-	Agents map[string]ConfAgent
+	Agents   map[string]ConfAgent
 }
 
 func (c config) forHostname(h string) (*ConfAgent, error) {
@@ -37,7 +37,7 @@ func (p ConfProducts) init() error {
 }
 
 type ConfAgent struct {
-	Checks []string
+	Checks  []string
 	Options ConfOptions
 }
 

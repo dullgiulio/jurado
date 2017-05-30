@@ -61,6 +61,9 @@ func (s *scheduler) work() {
 }
 
 func (s *scheduler) schedule() {
+	if len(s.ts) == 0 {
+		return
+	}
 	for {
 		sort.Sort(taskByTimeLeft(s.ts))
 		wait := s.ts[0].left

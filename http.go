@@ -53,7 +53,9 @@ func (h *httpTester) init(ch *Check) error {
 }
 
 func (h *httpTester) setUp(ch *Check) error {
-	return h.makeRequest(ch.Options)
+	var err error
+	h.body, h.resp, err = httpRequest(ch.Options)
+	return err
 }
 
 func (h *httpTester) tearDown() error {
@@ -64,7 +66,7 @@ func (h *httpTester) get(name string) testFn {
 	return h.tests[name]
 }
 
-func (h *httpTester) makeRequest(opts map[string]interface{}) error {
+func httpRequest(opts map[string]interface{}) ([]byte, *http.Response, error) {
 	val := opts["Url"]
 	rurl := val.(string)
 	// If have a host, use swap it with the host in URL.
@@ -74,7 +76,7 @@ func (h *httpTester) makeRequest(opts map[string]interface{}) error {
 		host = val.(string)
 		u, err := url.Parse(rurl)
 		if err != nil {
-			return fmt.Errorf("cannot change URL host: %s", err)
+			return nil, nil, fmt.Errorf("cannot change URL host: %s", err)
 		}
 		hs := u.Host
 		u.Host = host
@@ -92,7 +94,7 @@ func (h *httpTester) makeRequest(opts map[string]interface{}) error {
 	}
 	req, err := http.NewRequest(method, rurl, nil)
 	if err != nil {
-		return fmt.Errorf("cannot create check request: %s", err)
+		return nil, nil, fmt.Errorf("cannot create check request: %s", err)
 	}
 	if host != "" {
 		req.Host = host
@@ -107,16 +109,14 @@ func (h *httpTester) makeRequest(opts map[string]interface{}) error {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("cannot fire check request: %s", err)
+		return nil, nil, fmt.Errorf("cannot fire check request: %s", err)
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("cannot read check response body: %s", err)
+		return nil, nil, fmt.Errorf("cannot read check response body: %s", err)
 	}
-	h.body = body
-	h.resp = resp
-	return nil
+	return body, resp, nil
 }
 
 func (h *httpTester) testHttpStatus(status int) testFn {
