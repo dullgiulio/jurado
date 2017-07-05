@@ -19,7 +19,6 @@ func newTask(check *Check) (*task, error) {
 	}
 	return &task{
 		repeat: d,
-		left:   d,
 		check:  check,
 	}, nil
 }
@@ -68,7 +67,7 @@ func (s *scheduler) schedule() {
 		sort.Sort(taskByTimeLeft(s.ts))
 		wait := s.ts[0].left
 		for i := range s.ts {
-			s.ts[i].left = -wait
+			s.ts[i].left -= wait
 			if s.ts[i].left <= 0 {
 				s.ts[i].left = s.ts[i].repeat
 				s.ch <- s.ts[i].check
